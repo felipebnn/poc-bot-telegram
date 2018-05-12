@@ -2,45 +2,13 @@ import logging
 import sqlite3
 import sys
 
+from db import init_db, getToken, ConnectionCM
+from agendadao import AgendaDao
+
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 
 
-class ConnectionCM:
-    def __init__(self):
-        self.conn = sqlite3.connect('db.sqlite')
-
-    def __enter__(self):
-        return self.conn
-
-    def __exit__(self, type, value, traceback):
-        self.conn.close()
-
-def init_db(token):
-    with ConnectionCM() as conn:
-        with conn:
-            with open('db.sqlite.sql', 'r') as f:
-                conn.executescript(f.read())
-
-            conn.execute("INSERT INTO token (token) VALUES (?)", (token,))
-
-def getToken():
-    with ConnectionCM() as conn:
-        c = conn.cursor()
-        c.execute("SELECT (token) FROM token")
-        return c.fetchone()[0]
-
-class AgendaDao:
-    def insertAgenda(self, user_id, title):
-        with ConnectionCM() as conn:
-            with conn:
-                conn.execute("INSERT INTO agenda (user_id, title) VALUES (?, ?)", (user_id, title))
-
-    def listAgendas(self, user_id):
-        with ConnectionCM() as conn:
-            c = conn.cursor()
-            return [row[0] for row in c.execute("SELECT (title) FROM agenda WHERE user_id=?", (user_id,))]
-
-class Main:
+class App:
     def __init__(self):
         logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 
@@ -53,7 +21,7 @@ class Main:
             self.dispatcher.add_handler(CommandHandler('new_agenda', self.new_agenda, pass_args=True))
             self.dispatcher.add_handler(CommandHandler('list_agendas', self.list_agendas))
         except sqlite3.OperationalError:
-            print("The database was not initialized\n\tRun app.py -init_db TOKEN", file=sys.stderr)
+            logging.critical("The database was not initialized\n\tRun app.py -init_db TOKEN")
             sys.exit(1)
 
     def run(self):
@@ -94,9 +62,9 @@ class Main:
 if __name__ == '__main__':
     if len(sys.argv) > 1 and sys.argv[1] == '-init_db':
         if len(sys.argv) != 3:
-            print("usage: app.py [-init_db key]", file=sys.stderr)
+            logging.error("usage: app.py [-init_db key]")
             sys.exit(1)
 
         init_db(sys.argv[2])
     else:
-        Main().run()
+        App().run()
