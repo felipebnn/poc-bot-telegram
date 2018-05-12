@@ -1,12 +1,12 @@
 import logging
 import sqlite3
 import sys
+import os
 
 from db import init_db, getToken, ConnectionCM
 from agendadao import AgendaDao
 
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
-
 
 class App:
     def __init__(self):
@@ -54,9 +54,9 @@ class App:
 
         agendas = AgendaDao().listAgendas(user_id)
 
-        bot.send_message(chat_id=update.message.chat_id, text='Agendas:')
+        self.send_message(bot, update, 'Agendas:')
         for agenda in agendas:
-            bot.send_message(chat_id=update.message.chat_id, text='-> {}'.format(agenda))
+            self.send_message(bot, update, '-> {}'.format(agenda))
 
 
 if __name__ == '__main__':
